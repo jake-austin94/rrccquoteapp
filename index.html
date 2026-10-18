@@ -54,6 +54,72 @@
   .app-header h1 { font-size: 16px; font-weight: 600; line-height: 1.2; }
   .app-header p { font-size: 11px; opacity: 0.6; }
 
+  /* ── CRM Settings ── */
+  .crm-settings-btn {
+    margin-left: auto;
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.3);
+    color: white;
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 14px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .crm-settings-btn:hover { background: rgba(255,255,255,0.25); }
+
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.55);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal-box {
+    background: #fff;
+    border-radius: 14px;
+    padding: 24px 20px 20px;
+    width: 90%;
+    max-width: 380px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+  }
+  .modal-box h3 { margin: 0 0 16px; font-size: 16px; color: #1a1a2e; }
+  .modal-box label { display: block; font-size: 12px; font-weight: 600; color: #666; margin-bottom: 4px; margin-top: 12px; }
+  .modal-box input {
+    width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px;
+    font-size: 13px; box-sizing: border-box;
+  }
+  .modal-box input:focus { outline: none; border-color: var(--teal); }
+  .modal-actions { display: flex; gap: 8px; margin-top: 18px; }
+  .modal-actions button { flex: 1; padding: 10px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; }
+  .modal-save-btn { background: var(--teal); color: white; }
+  .modal-cancel-btn { background: #f0f0f0; color: #444; }
+  .crm-status-dot {
+    width: 8px; height: 8px; border-radius: 50%; display: inline-block;
+    margin-right: 5px; background: #aaa;
+  }
+  .crm-status-dot.green { background: #22c55e; }
+  .crm-status-dot.red   { background: #ef4444; }
+  .crm-ping-row { margin-top: 12px; font-size: 12px; color: #888; display: flex; align-items: center; }
+  .btn-crm-save {
+    background: #22c55e;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 11px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .btn-crm-save:hover { background: #16a34a; }
+  .btn-crm-save:disabled { background: #86efac; cursor: default; }
+
   /* ── TABS ── */
   .tabs {
     display: flex;
@@ -363,6 +429,27 @@
     <h1>Quote Generator</h1>
     <p>The Roof & Render Cleaning Co.</p>
   </div>
+  <button class="crm-settings-btn" onclick="openCRMSettings()" title="CRM Settings">⚙ CRM</button>
+</div>
+
+<!-- ── CRM Settings Modal ── -->
+<div class="modal-overlay" id="crm-modal">
+  <div class="modal-box">
+    <h3>⚙ CRM Connection</h3>
+    <p style="font-size:12px;color:#888;margin:0 0 4px">Connect to your Roof &amp; Render CRM to save quotes and invoices automatically.</p>
+    <label>CRM URL</label>
+    <input type="url" id="crm-url" placeholder="https://your-crm.netlify.app">
+    <label>API Key</label>
+    <input type="password" id="crm-key" placeholder="Paste your QUOTE_APP_API_KEY here">
+    <div class="crm-ping-row" id="crm-ping-status">
+      <span class="crm-status-dot" id="crm-status-dot"></span>
+      <span id="crm-status-text">Not configured</span>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-cancel-btn" onclick="closeCRMSettings()">Cancel</button>
+      <button class="modal-save-btn" onclick="testCRMConnection()">Test &amp; Save</button>
+    </div>
+  </div>
 </div>
 
 <div class="tabs">
@@ -454,6 +541,7 @@
       <div class="preview-actions">
         <button class="action-btn primary" onclick="downloadPDF()">⬇ Download PDF</button>
         <button class="action-btn email-btn" onclick="toggleEmail()">✉ Email Quote</button>
+        <button class="btn-crm-save" id="btn-save-quote-crm" onclick="saveToCRM_quote()">💾 Save to CRM</button>
       </div>
 
       <div class="email-form" id="email-form">
@@ -578,6 +666,7 @@
       <button class="action-btn" onclick="showTab('invoice')" style="background:var(--mid)">← Edit Invoice</button>
       <button class="action-btn primary" onclick="downloadInvoicePDF()">⬇ Download PDF</button>
       <button class="action-btn email-btn" onclick="toggleInvEmail()">✉ Email Invoice</button>
+      <button class="btn-crm-save" id="btn-save-invoice-crm" onclick="saveToCRM_invoice()">💾 Save to CRM</button>
     </div>
 
     <div class="email-form" id="inv-email-form">
@@ -1243,6 +1332,155 @@ function updateInvItem(id, key, val) {
   if (item) item[key] = val;
 }
 
+// ══════════════════════════════════════════════════════════════════════════
+// CRM SYNC  — saves quotes and invoices to the R&R CRM (Supabase backend)
+// Settings (API URL + key) are stored in localStorage under 'crmSettings'.
+// ══════════════════════════════════════════════════════════════════════════
+
+function getCRMSettings() {
+  try { return JSON.parse(localStorage.getItem('crmSettings') || 'null'); } catch { return null; }
+}
+
+function openCRMSettings() {
+  const s = getCRMSettings();
+  if (s) {
+    document.getElementById('crm-url').value = s.url || '';
+    document.getElementById('crm-key').value = s.key || '';
+    setCRMDot(true);
+  }
+  document.getElementById('crm-modal').classList.add('open');
+}
+
+function closeCRMSettings() {
+  document.getElementById('crm-modal').classList.remove('open');
+}
+
+function setCRMDot(ok) {
+  const dot = document.getElementById('crm-status-dot');
+  const txt = document.getElementById('crm-status-text');
+  if (ok) {
+    dot.className = 'crm-status-dot green';
+    txt.textContent = 'Connected';
+  } else {
+    dot.className = 'crm-status-dot red';
+    txt.textContent = 'Connection failed';
+  }
+}
+
+async function testCRMConnection() {
+  const url = document.getElementById('crm-url').value.trim().replace(/\/$/, '');
+  const key = document.getElementById('crm-key').value.trim();
+  const txt = document.getElementById('crm-status-text');
+  if (!url || !key) { showToast('Please enter both URL and API key'); return; }
+
+  txt.textContent = 'Testing…';
+  document.getElementById('crm-status-dot').className = 'crm-status-dot';
+
+  try {
+    const res = await fetch(`${url}/api/quote-app/save`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
+      body: JSON.stringify({ type: 'ping' })
+    });
+    if (res.ok) {
+      localStorage.setItem('crmSettings', JSON.stringify({ url, key }));
+      setCRMDot(true);
+      showToast('✅ CRM connected and saved!');
+      setTimeout(closeCRMSettings, 1200);
+    } else {
+      setCRMDot(false);
+      showToast(`CRM error: ${res.status} ${res.statusText}`);
+    }
+  } catch (e) {
+    setCRMDot(false);
+    showToast('Could not reach CRM — check the URL');
+  }
+}
+
+async function saveToCRM_quote() {
+  const s = getCRMSettings();
+  if (!s) { openCRMSettings(); showToast('Configure CRM connection first'); return; }
+  if (!quoteData) { showToast('Build a quote first'); return; }
+
+  const btn = document.getElementById('btn-save-quote-crm');
+  btn.disabled = true;
+  btn.textContent = '⏳ Saving…';
+
+  // Compute total
+  let total = 0;
+  quoteData.items.forEach(item => {
+    if (item.isOr) return;
+    if (item.type === 'm2' && item.m2 && item.pricePerM2)
+      total += parseFloat(item.m2) * parseFloat(item.pricePerM2);
+    else if (item.type === 'flat' && item.flatPrice)
+      total += parseFloat(item.flatPrice);
+  });
+
+  try {
+    const res = await fetch(`${s.url}/api/quote-app/save`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${s.key}` },
+      body: JSON.stringify({ type: 'quote', data: { ...quoteData, total } })
+    });
+    const json = await res.json();
+    if (res.ok && json.success) {
+      const msg = json.duplicate ? '☑ Already in CRM' : '✅ Quote saved to CRM!';
+      showToast(msg);
+      btn.textContent = json.duplicate ? '☑ Already saved' : '✅ Saved!';
+    } else {
+      showToast(`CRM error: ${json.error || res.status}`);
+      btn.disabled = false;
+      btn.textContent = '💾 Save to CRM';
+    }
+  } catch (e) {
+    showToast('Could not reach CRM');
+    btn.disabled = false;
+    btn.textContent = '💾 Save to CRM';
+  }
+}
+
+async function saveToCRM_invoice() {
+  const s = getCRMSettings();
+  if (!s) { openCRMSettings(); showToast('Configure CRM connection first'); return; }
+  if (!invoiceData) { showToast('Generate an invoice first'); return; }
+
+  const btn = document.getElementById('btn-save-invoice-crm');
+  btn.disabled = true;
+  btn.textContent = '⏳ Saving…';
+
+  // Compute total
+  let total = 0;
+  invoiceData.items.forEach(item => {
+    if (item.type === 'm2' && item.m2 && item.pricePerM2)
+      total += parseFloat(item.m2) * parseFloat(item.pricePerM2);
+    else if (item.type === 'flat' && item.flatPrice)
+      total += parseFloat(item.flatPrice);
+  });
+
+  try {
+    const res = await fetch(`${s.url}/api/quote-app/save`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${s.key}` },
+      body: JSON.stringify({ type: 'invoice', data: { ...invoiceData, total } })
+    });
+    const json = await res.json();
+    if (res.ok && json.success) {
+      const msg = json.duplicate ? '☑ Already in CRM' : '✅ Invoice saved to CRM!';
+      showToast(msg);
+      btn.textContent = json.duplicate ? '☑ Already saved' : '✅ Saved!';
+    } else {
+      showToast(`CRM error: ${json.error || res.status}`);
+      btn.disabled = false;
+      btn.textContent = '💾 Save to CRM';
+    }
+  } catch (e) {
+    showToast('Could not reach CRM');
+    btn.disabled = false;
+    btn.textContent = '💾 Save to CRM';
+  }
+}
+
+// ──────────────────────────────────────────────────────────────────────────
 function calcInvTotal(item) {
   if (item.type === 'm2' && item.m2 && item.pricePerM2) {
     return parseFloat(item.m2) * parseFloat(item.pricePerM2);
