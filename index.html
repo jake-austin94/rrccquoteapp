@@ -176,6 +176,35 @@
   .generate-btn:hover { background: #1a7aaa; transform: translateY(-1px); }
   .generate-btn:active { transform: translateY(0); }
 
+  /* ── INVOICE ── */
+  .load-quote-btn {
+    background: var(--teal-light); color: var(--teal);
+    border: 1px solid var(--teal); border-radius: 8px;
+    padding: 9px 16px; font-size: 14px; font-weight: 600;
+    cursor: pointer;
+  }
+  .load-quote-btn:hover { background: var(--teal); color: white; }
+  #inv-paper-wrapper {
+    width: 100%; overflow: hidden; border-radius: 8px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.15); background: white;
+  }
+  #inv-paper {
+    width: 794px; min-height: 1123px; background: white;
+    transform-origin: top left; box-sizing: border-box;
+    display: flex; flex-direction: column;
+  }
+  .inv-line-item-row {
+    background: white; border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px; margin-bottom: 10px;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+  }
+  .inv-line-item-row .fields-grid { display: contents; }
+  .inv-remove-btn {
+    background: none; border: none; color: #e74c3c;
+    font-size: 18px; cursor: pointer; padding: 0 4px;
+    align-self: center; justify-self: end;
+  }
+
   /* ── PREVIEW TAB ── */
   .preview-container { padding: 8px; max-width: 100%; margin: 0 auto; }
 
@@ -339,6 +368,7 @@
 <div class="tabs">
   <div class="tab active" onclick="showTab('form')">📋 Build Quote</div>
   <div class="tab" onclick="showTab('preview')">👁 Preview & Send</div>
+  <div class="tab" onclick="showTab('invoice')">🧾 Invoice</div>
 </div>
 
 <!-- ══════════════ FORM TAB ══════════════ -->
@@ -453,6 +483,129 @@
   </div>
 </div>
 
+<!-- ══════════════ INVOICE TAB ══════════════ -->
+<div id="tab-invoice" style="display:none;">
+  <div class="form-container">
+
+    <div class="card">
+      <h2 class="card-title">🧾 Invoice Details</h2>
+      <div class="fields-grid">
+        <div class="field full-width">
+          <label>Customer Name</label>
+          <input type="text" id="inv-customer-name" placeholder="Full Name" oninput="updateInvRef()">
+        </div>
+        <div class="field full-width">
+          <label>Address Line 1</label>
+          <input type="text" id="inv-addr1" placeholder="House / Street">
+        </div>
+        <div class="field">
+          <label>Town / City</label>
+          <input type="text" id="inv-addr2" placeholder="Town or City">
+        </div>
+        <div class="field">
+          <label>Postcode</label>
+          <input type="text" id="inv-postcode" placeholder="Postcode">
+        </div>
+        <div class="field">
+          <label>Customer Email</label>
+          <input type="email" id="inv-customer-email" placeholder="customer@email.com">
+        </div>
+        <div class="field">
+          <label>Invoice Date</label>
+          <input type="date" id="inv-date">
+        </div>
+        <div class="field">
+          <label>Invoice Number</label>
+          <input type="text" id="inv-ref" placeholder="INV-001">
+        </div>
+        <div class="field">
+          <label>Due Date</label>
+          <input type="date" id="inv-due-date">
+        </div>
+        <div class="field full-width">
+          <label>Quote Reference (optional)</label>
+          <input type="text" id="inv-quote-ref" placeholder="e.g. SMITH181026">
+        </div>
+      </div>
+      <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">
+        <button class="load-quote-btn" onclick="loadFromQuote()">⬆ Load from Last Quote</button>
+        <span style="font-size:13px;color:var(--mid);margin-left:10px;" id="inv-load-status"></span>
+      </div>
+    </div>
+
+    <div class="card" id="inv-items-card">
+      <h2 class="card-title">Line Items</h2>
+      <div id="inv-line-items"></div>
+      <button class="add-item-btn" onclick="addInvLineItem()">+ Add Line Item</button>
+    </div>
+
+    <div class="card">
+      <h2 class="card-title">💳 Payment Details</h2>
+      <div class="fields-grid">
+        <div class="field">
+          <label>Bank Name</label>
+          <input type="text" id="inv-bank-name" value="Barclays">
+        </div>
+        <div class="field">
+          <label>Account Name</label>
+          <input type="text" id="inv-acc-name" value="The Roof & Render Cleaning Company">
+        </div>
+        <div class="field">
+          <label>Sort Code</label>
+          <input type="text" id="inv-sort-code" placeholder="00-00-00">
+        </div>
+        <div class="field">
+          <label>Account Number</label>
+          <input type="text" id="inv-acc-number" placeholder="00000000">
+        </div>
+        <div class="field full-width">
+          <label>Payment Reference</label>
+          <input type="text" id="inv-pay-ref" placeholder="Auto-fills with invoice number">
+        </div>
+      </div>
+    </div>
+
+    <button class="generate-btn" onclick="generateInvoice()">🧾 Generate Invoice</button>
+
+  </div>
+</div>
+
+<!-- ══════════════ INVOICE PREVIEW TAB ══════════════ -->
+<div id="tab-invoice-preview" style="display:none;">
+  <div class="preview-container">
+
+    <div class="preview-actions">
+      <button class="action-btn" onclick="showTab('invoice')" style="background:var(--mid)">← Edit Invoice</button>
+      <button class="action-btn primary" onclick="downloadInvoicePDF()">⬇ Download PDF</button>
+      <button class="action-btn email-btn" onclick="toggleInvEmail()">✉ Email Invoice</button>
+    </div>
+
+    <div class="email-form" id="inv-email-form">
+      <h3>Send Invoice by Email</h3>
+      <div class="field">
+        <label>Recipient Email</label>
+        <input type="email" id="inv-send-to-email" placeholder="customer@email.com">
+      </div>
+      <div class="field">
+        <label>Subject</label>
+        <input type="text" id="inv-email-subject" placeholder="Your Invoice">
+      </div>
+      <div class="field">
+        <label>Message</label>
+        <textarea id="inv-email-body" rows="4"></textarea>
+      </div>
+      <button class="send-btn" onclick="sendInvEmail()">Send via Email App</button>
+    </div>
+
+    <div id="inv-paper-wrapper">
+      <div id="inv-paper">
+        <!-- Populated by JS -->
+      </div>
+    </div>
+
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -490,8 +643,15 @@ function updateRefFromName() {
 function showTab(tab) {
   document.getElementById('tab-form').style.display = tab === 'form' ? 'block' : 'none';
   document.getElementById('tab-preview').style.display = tab === 'preview' ? 'block' : 'none';
+  document.getElementById('tab-invoice').style.display = tab === 'invoice' ? 'block' : 'none';
+  document.getElementById('tab-invoice-preview').style.display = tab === 'invoice-preview' ? 'block' : 'none';
   document.querySelectorAll('.tab').forEach((t,i) => {
-    t.classList.toggle('active', (tab === 'form' && i === 0) || (tab === 'preview' && i === 1));
+    t.classList.toggle('active',
+      (tab === 'form' && i === 0) ||
+      (tab === 'preview' && i === 1) ||
+      (tab === 'invoice' && i === 2) ||
+      (tab === 'invoice-preview' && i === 2)
+    );
   });
 }
 
@@ -959,6 +1119,449 @@ function scaleQuotePaper() {
   wrapper.style.height = Math.round(1123 * scale) + 'px';
 }
 window.addEventListener('resize', scaleQuotePaper);
+
+// ═══════════════════════════════════════════════════
+// INVOICE GENERATOR
+// ═══════════════════════════════════════════════════
+
+let invLineItems = [];
+let invoiceData = null;
+
+// ── Init invoice tab ──
+function initInvoiceTab() {
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('inv-date').value = today;
+  // Due date: 14 days from today
+  const due = new Date(); due.setDate(due.getDate() + 14);
+  document.getElementById('inv-due-date').value = due.toISOString().split('T')[0];
+  if (invLineItems.length === 0) addInvLineItem();
+  updateInvRef();
+}
+
+function updateInvRef() {
+  const fullName = document.getElementById('inv-customer-name').value.trim();
+  const parts = fullName.split(' ').filter(p => p.length > 0);
+  const surname = parts.length > 1 ? parts[parts.length - 1] : parts[0] || '';
+  const now = new Date();
+  const dd = String(now.getDate()).padStart(2,'0');
+  const mm = String(now.getMonth()+1).padStart(2,'0');
+  const yy = String(now.getFullYear()).slice(-2);
+  const prefix = surname ? 'INV' + surname.toUpperCase() : 'INV001';
+  document.getElementById('inv-ref').value = `${prefix}${dd}${mm}${yy}`;
+  document.getElementById('inv-pay-ref').value = document.getElementById('inv-ref').value;
+}
+
+// ── Load from last quote ──
+function loadFromQuote() {
+  if (!quoteData) {
+    document.getElementById('inv-load-status').textContent = '⚠ No quote generated yet — build a quote first.';
+    return;
+  }
+  document.getElementById('inv-customer-name').value = quoteData.customerName || '';
+  document.getElementById('inv-addr1').value = quoteData.addr1 || '';
+  document.getElementById('inv-addr2').value = quoteData.addr2 || '';
+  document.getElementById('inv-postcode').value = quoteData.postcode || '';
+  document.getElementById('inv-customer-email').value = quoteData.customerEmail || '';
+  document.getElementById('inv-quote-ref').value = quoteData.ref || '';
+
+  // Copy line items (excluding "OR" dividers)
+  invLineItems = [];
+  document.getElementById('inv-line-items').innerHTML = '';
+  quoteData.items.forEach(item => {
+    if (!item.isOr) {
+      const id = Date.now() + Math.random();
+      invLineItems.push({ id, ...item, isOr: false });
+    }
+  });
+  renderInvLineItems();
+  updateInvRef();
+  document.getElementById('inv-load-status').textContent = '✓ Loaded from quote.';
+  setTimeout(() => document.getElementById('inv-load-status').textContent = '', 3000);
+}
+
+// ── Inv Line Items ──
+function addInvLineItem() {
+  const id = Date.now() + Math.random();
+  invLineItems.push({ id, desc: '', subdesc: '', type: 'flat', flatPrice: '', m2: '', pricePerM2: '' });
+  renderInvLineItems();
+}
+
+function removeInvLineItem(id) {
+  invLineItems = invLineItems.filter(i => i.id !== id);
+  renderInvLineItems();
+}
+
+function renderInvLineItems() {
+  const container = document.getElementById('inv-line-items');
+  container.innerHTML = '';
+  invLineItems.forEach((item, idx) => {
+    const row = document.createElement('div');
+    row.className = 'inv-line-item-row';
+    row.dataset.id = item.id;
+    row.innerHTML = `
+      <div class="field full-width" style="grid-column:1/-1;display:flex;align-items:center;gap:8px;">
+        <input type="text" placeholder="Description (e.g. Roof Steam Clean)" value="${escHtml(item.desc)}"
+          style="flex:1" oninput="updateInvItem(${item.id},'desc',this.value)">
+        <button class="inv-remove-btn" onclick="removeInvLineItem(${item.id})" title="Remove">✕</button>
+      </div>
+      <div class="field full-width" style="grid-column:1/-1;">
+        <input type="text" placeholder="Sub-description (optional)" value="${escHtml(item.subdesc)}"
+          oninput="updateInvItem(${item.id},'subdesc',this.value)">
+      </div>
+      <div class="field">
+        <label>Price Type</label>
+        <select onchange="updateInvItem(${item.id},'type',this.value);renderInvLineItems()">
+          <option value="flat" ${item.type==='flat'?'selected':''}>Flat Price</option>
+          <option value="m2" ${item.type==='m2'?'selected':''}>Per m²</option>
+        </select>
+      </div>
+      ${item.type === 'm2' ? `
+        <div class="field">
+          <label>Area (m²)</label>
+          <input type="number" placeholder="e.g. 85" value="${item.m2||''}"
+            oninput="updateInvItem(${item.id},'m2',this.value)">
+        </div>
+        <div class="field">
+          <label>Price per m²</label>
+          <input type="number" placeholder="e.g. 10" value="${item.pricePerM2||''}"
+            oninput="updateInvItem(${item.id},'pricePerM2',this.value)">
+        </div>
+      ` : `
+        <div class="field">
+          <label>Flat Price (£)</label>
+          <input type="number" placeholder="e.g. 250" value="${item.flatPrice||''}"
+            oninput="updateInvItem(${item.id},'flatPrice',this.value)">
+        </div>
+      `}
+    `;
+    container.appendChild(row);
+  });
+}
+
+function updateInvItem(id, key, val) {
+  const item = invLineItems.find(i => i.id === id);
+  if (item) item[key] = val;
+}
+
+function calcInvTotal(item) {
+  if (item.type === 'm2' && item.m2 && item.pricePerM2) {
+    return parseFloat(item.m2) * parseFloat(item.pricePerM2);
+  }
+  if (item.type === 'flat' && item.flatPrice) {
+    return parseFloat(item.flatPrice);
+  }
+  return null;
+}
+
+function escHtml(str) {
+  return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Generate Invoice ──
+function generateInvoice() {
+  const name = document.getElementById('inv-customer-name').value.trim();
+  if (!name) { showToast('Please enter the customer name'); return; }
+  if (invLineItems.length === 0) { showToast('Please add at least one line item'); return; }
+
+  invoiceData = {
+    customerName: name,
+    addr1: document.getElementById('inv-addr1').value.trim(),
+    addr2: document.getElementById('inv-addr2').value.trim(),
+    postcode: document.getElementById('inv-postcode').value.trim(),
+    customerEmail: document.getElementById('inv-customer-email').value.trim(),
+    date: formatDate(document.getElementById('inv-date').value),
+    dueDate: formatDate(document.getElementById('inv-due-date').value),
+    ref: document.getElementById('inv-ref').value.trim(),
+    quoteRef: document.getElementById('inv-quote-ref').value.trim(),
+    bankName: document.getElementById('inv-bank-name').value.trim(),
+    accName: document.getElementById('inv-acc-name').value.trim(),
+    sortCode: document.getElementById('inv-sort-code').value.trim(),
+    accNumber: document.getElementById('inv-acc-number').value.trim(),
+    payRef: document.getElementById('inv-pay-ref').value.trim(),
+    items: invLineItems.map(i => ({...i}))
+  };
+
+  renderInvoicePaper();
+
+  // Pre-fill email fields
+  document.getElementById('inv-send-to-email').value = invoiceData.customerEmail;
+  document.getElementById('inv-email-subject').value = `Invoice from The Roof & Render Cleaning Company – ${invoiceData.ref}`;
+  document.getElementById('inv-email-body').value = `Dear ${invoiceData.customerName.split(' ')[0]},\n\nThank you for using our services. Please find your invoice attached.\n\nInvoice Reference: ${invoiceData.ref}\nDate: ${invoiceData.date}\nPayment Due: ${invoiceData.dueDate}\n\nPayment can be made by bank transfer to:\n${invoiceData.bankName}\nAccount Name: ${invoiceData.accName}\nSort Code: ${invoiceData.sortCode}\nAccount Number: ${invoiceData.accNumber}\nPayment Reference: ${invoiceData.payRef}\n\nKind regards,\nJake Austin\nThe Roof & Render Cleaning Company\n07848 003360\nroofandrendercleaning.com`;
+
+  showTab('invoice-preview');
+  setTimeout(scaleInvPaper, 50);
+}
+
+function scaleInvPaper() {
+  const wrapper = document.getElementById('inv-paper-wrapper');
+  const paper = document.getElementById('inv-paper');
+  if (!wrapper || !paper) return;
+  const scale = wrapper.clientWidth / 794;
+  paper.style.transform = 'scale(' + scale + ')';
+  wrapper.style.height = Math.round(1123 * scale) + 'px';
+}
+
+function renderInvoicePaper() {
+  const iv = invoiceData;
+
+  // Get logo from app header (always present)
+  const logoSrc = document.querySelector('.app-header img')?.src || '';
+
+  // Calculate totals
+  let subtotal = 0;
+  let tableRows = '';
+  iv.items.forEach(item => {
+    const total = calcInvTotal(item);
+    const m2Cell = item.type === 'm2' ? (item.m2 || '–') : '–';
+    const priceCell = item.type === 'm2'
+      ? (item.pricePerM2 ? `£${item.pricePerM2}/m²` : '–')
+      : (item.flatPrice ? `£${parseFloat(item.flatPrice).toLocaleString()}` : '–');
+    const totalCell = total !== null ? `£${total.toLocaleString()}` : '–';
+    if (total !== null) subtotal += total;
+
+    tableRows += `
+      <tr>
+        <td>
+          <div class="inv-td-desc">${escHtml(item.desc)}</div>
+          ${item.subdesc ? `<div class="inv-td-subdesc">${escHtml(item.subdesc)}</div>` : ''}
+        </td>
+        <td style="text-align:center">${m2Cell}</td>
+        <td style="text-align:center">${priceCell}</td>
+        <td style="text-align:center;font-weight:700">${totalCell}</td>
+      </tr>`;
+  });
+
+  const totalStr = subtotal > 0 ? `£${subtotal.toLocaleString()}` : '–';
+  const addressLines = [iv.addr1, iv.addr2, iv.postcode].filter(Boolean).join('<br>');
+  const quoteRefRow = iv.quoteRef
+    ? `<span class="inv-meta-lbl">Quote Ref.</span><span class="inv-meta-val">${escHtml(iv.quoteRef)}</span>`
+    : '';
+  const sortRow = iv.sortCode
+    ? `<span class="inv-pay-lbl">Sort Code</span><span>${escHtml(iv.sortCode)}</span>`
+    : '';
+  const accRow = iv.accNumber
+    ? `<span class="inv-pay-lbl">Account No.</span><span>${escHtml(iv.accNumber)}</span>`
+    : '';
+
+  document.getElementById('inv-paper').innerHTML = `
+    <style>
+      #inv-paper * { box-sizing: border-box; margin: 0; padding: 0; }
+      #inv-paper { font-family: 'DM Sans', sans-serif; color: #1a1a2e; }
+      .inv-header { padding: 18px 28px 12px; display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #2196C4; }
+      .inv-header-left { display:flex; align-items:center; gap:14px; }
+      .inv-logo { height:56px; width:auto; border-radius:6px; }
+      .inv-company-name { font-size:13px; font-weight:700; color:#1a1a2e; }
+      .inv-company-sub { font-size:10px; color:#666; line-height:1.7; margin-top:2px; }
+      .inv-header-right { text-align:right; }
+      .inv-doc-type { font-size:28px; font-weight:700; color:#2196C4; letter-spacing:-0.01em; }
+      .inv-meta-grid { display:grid; grid-template-columns:auto auto; gap:2px 10px; font-size:10px; margin-top:6px; justify-content:end; }
+      .inv-meta-lbl { color:#888; font-weight:600; text-align:right; }
+      .inv-meta-val { color:#1a1a2e; font-weight:600; }
+      .inv-client-row { padding:16px 28px; display:flex; justify-content:space-between; align-items:flex-start; background:#f8f9fc; }
+      .inv-bill-label { font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:#888; margin-bottom:4px; }
+      .inv-client-name { font-weight:700; font-size:14px; }
+      .inv-client-addr { font-size:11px; color:#666; line-height:1.6; margin-top:2px; }
+      .inv-table-wrap { padding:0 28px 20px; }
+      .inv-table-wrap table { width:100%; border-collapse:collapse; border-radius:8px; overflow:hidden; margin-top:16px; }
+      .inv-table-wrap thead tr { background:#2196C4; }
+      .inv-table-wrap thead th { color:white; font-size:11px; font-weight:600; padding:10px 12px; text-align:left; }
+      .inv-table-wrap thead th:last-child, .inv-table-wrap thead th:nth-child(2), .inv-table-wrap thead th:nth-child(3) { text-align:center; }
+      .inv-table-wrap tbody tr { border-bottom:1px solid #f0f0f0; }
+      .inv-table-wrap tbody tr:last-child { border-bottom:none; }
+      .inv-table-wrap tbody td { padding:11px 12px; font-size:11px; vertical-align:top; }
+      .inv-table-wrap tbody tr:nth-child(even) { background:#fafafa; }
+      .inv-td-desc { font-weight:700; font-size:12px; }
+      .inv-td-subdesc { font-weight:400; font-size:10px; color:#666; margin-top:3px; }
+      .inv-total-row td { background:#e8f4fa; }
+      .inv-total-row td:last-child { color:#2196C4; font-size:15px; font-weight:700; }
+      .inv-pay-box { margin:0 28px 20px; background:#e8f4fa; border:1px solid #c8dff0; border-radius:10px; padding:16px 20px; }
+      .inv-pay-title { font-size:13px; font-weight:700; color:#2196C4; margin-bottom:10px; }
+      .inv-pay-grid { display:grid; grid-template-columns:130px 1fr; gap:5px 10px; font-size:11px; }
+      .inv-pay-lbl { font-weight:600; color:#888; }
+      .inv-pay-note { margin-top:10px; font-size:10px; color:#888; border-top:1px solid #c8dff0; padding-top:8px; }
+      .inv-footer { padding:12px 28px 20px; font-size:9px; font-weight:600; color:#888; text-align:center; border-top:1px solid #eee; margin-top:auto; }
+    </style>
+
+    <div class="inv-header">
+      <div class="inv-header-left">
+        ${logoSrc ? `<img src="${logoSrc}" alt="Logo" class="inv-logo">` : ''}
+        <div>
+          <div class="inv-company-name">The Roof &amp; Render Cleaning Company</div>
+          <div class="inv-company-sub">07848 003360<br>roofandrendercleaning.com<br>roofandrendercleaning@gmail.com</div>
+        </div>
+      </div>
+      <div class="inv-header-right">
+        <div class="inv-doc-type">INVOICE</div>
+        <div class="inv-meta-grid">
+          <span class="inv-meta-lbl">Invoice No.</span><span class="inv-meta-val">${escHtml(iv.ref)}</span>
+          <span class="inv-meta-lbl">Date</span><span class="inv-meta-val">${escHtml(iv.date)}</span>
+          <span class="inv-meta-lbl">Due Date</span><span class="inv-meta-val">${escHtml(iv.dueDate)}</span>
+          ${quoteRefRow}
+        </div>
+      </div>
+    </div>
+
+    <div class="inv-client-row">
+      <div>
+        <div class="inv-bill-label">Bill To</div>
+        <div class="inv-client-name">${escHtml(iv.customerName)}</div>
+        <div class="inv-client-addr">${addressLines}${iv.customerEmail ? '<br>' + escHtml(iv.customerEmail) : ''}</div>
+      </div>
+    </div>
+
+    <div class="inv-table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Description</th>
+            <th>Area (m²)</th>
+            <th>Unit Price</th>
+            <th>Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${tableRows}
+          <tr class="inv-total-row">
+            <td colspan="3" style="text-align:right;font-weight:700;padding-right:14px;font-size:12px">Total Due</td>
+            <td style="text-align:center">${totalStr}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="inv-pay-box">
+      <div class="inv-pay-title">💳 Payment Details</div>
+      <div class="inv-pay-grid">
+        <span class="inv-pay-lbl">Bank</span><span>${escHtml(iv.bankName)}</span>
+        <span class="inv-pay-lbl">Account Name</span><span>${escHtml(iv.accName)}</span>
+        ${sortRow}
+        ${accRow}
+        <span class="inv-pay-lbl">Reference</span><span><strong>${escHtml(iv.payRef || iv.ref)}</strong></span>
+      </div>
+      <div class="inv-pay-note">Please use your invoice number as the payment reference. Payment due: <strong>${escHtml(iv.dueDate)}</strong></div>
+    </div>
+
+    <div class="inv-footer">
+      The Roof &amp; Render Cleaning Company &nbsp;·&nbsp; roofandrendercleaning.com &nbsp;·&nbsp; 07848 003360
+    </div>
+  `;
+}
+
+// (invoice styles are self-contained in inv-paper)
+
+// ── Download Invoice PDF ──
+async function downloadInvoicePDF() {
+  if (!invoiceData) { showToast('Generate an invoice first'); return; }
+  showToast('Generating invoice PDF…');
+  try {
+    const paper = document.getElementById('inv-paper');
+    const wrapper = document.getElementById('inv-paper-wrapper');
+    const prevTransform = paper.style.transform;
+    paper.style.transform = 'none';
+    if (wrapper) { wrapper.style.overflow = 'visible'; wrapper.style.height = 'auto'; }
+    const canvas = await html2canvas(paper, {
+      scale: 2, useCORS: true, backgroundColor: '#ffffff',
+      width: 794, height: paper.scrollHeight
+    });
+    paper.style.transform = prevTransform;
+    if (wrapper) { wrapper.style.overflow = 'hidden'; scaleInvPaper(); }
+
+    const pdfLibGlobal = window.PDFLib || window['pdf-lib'];
+    if (!pdfLibGlobal) throw new Error('PDF library not loaded');
+    const { PDFDocument } = pdfLibGlobal;
+    const pdfDoc = await PDFDocument.create();
+
+    const imgData = canvas.toDataURL('image/jpeg', 0.92);
+    const imgBytes = base64ToUint8Array(imgData.split(',')[1]);
+    const jpgImage = await pdfDoc.embedJpg(imgBytes);
+
+    const a4W = 595.28, a4H = 841.89;
+    const page = pdfDoc.addPage([a4W, a4H]);
+    page.drawImage(jpgImage, { x: 0, y: 0, width: a4W, height: a4H });
+
+    const pdfBytes = await pdfDoc.save();
+    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Invoice-${invoiceData.ref}.pdf`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('Invoice downloaded!');
+  } catch(e) {
+    console.error(e);
+    showToast('PDF error: ' + e.message);
+  }
+}
+
+// ── Email Invoice ──
+function toggleInvEmail() {
+  const form = document.getElementById('inv-email-form');
+  form.style.display = form.style.display === 'block' ? 'none' : 'block';
+}
+
+async function sendInvEmail() {
+  if (!invoiceData) { showToast('Generate an invoice first'); return; }
+  const to = document.getElementById('inv-send-to-email').value.trim();
+  const subject = document.getElementById('inv-email-subject').value;
+  const body = document.getElementById('inv-email-body').value;
+  if (!to) { showToast('Enter a recipient email'); return; }
+  showToast('Generating PDF for email…');
+  try {
+    const paper = document.getElementById('inv-paper');
+    const wrapper = document.getElementById('inv-paper-wrapper');
+    const prevTransform = paper.style.transform;
+    paper.style.transform = 'none';
+    if (wrapper) { wrapper.style.overflow = 'visible'; wrapper.style.height = 'auto'; }
+    const canvas = await html2canvas(paper, {
+      scale: 2, useCORS: true, backgroundColor: '#ffffff',
+      width: 794, height: paper.scrollHeight
+    });
+    paper.style.transform = prevTransform;
+    if (wrapper) { wrapper.style.overflow = 'hidden'; scaleInvPaper(); }
+
+    const pdfLibGlobal = window.PDFLib || window['pdf-lib'];
+    const { PDFDocument } = pdfLibGlobal;
+    const pdfDoc = await PDFDocument.create();
+    const imgData = canvas.toDataURL('image/jpeg', 0.92);
+    const imgBytes = base64ToUint8Array(imgData.split(',')[1]);
+    const jpgImage = await pdfDoc.embedJpg(imgBytes);
+    const a4W = 595.28, a4H = 841.89;
+    const page = pdfDoc.addPage([a4W, a4H]);
+    page.drawImage(jpgImage, { x: 0, y: 0, width: a4W, height: a4H });
+    const pdfBytes = await pdfDoc.save();
+    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `Invoice-${invoiceData.ref}.pdf`;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+
+    setTimeout(() => {
+      const mailto = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      window.open(mailto);
+    }, 500);
+    showToast('PDF saved — attach it to your email');
+  } catch(e) {
+    console.error(e);
+    showToast('Error: ' + e.message);
+  }
+}
+
+// ── Patch window.onload to also init invoice tab ──
+const _origOnload = window.onload;
+window.onload = function() {
+  if (_origOnload) _origOnload.call(this);
+  initInvoiceTab();
+  // Also wire up the invoice tab click to re-init dates
+  document.querySelectorAll('.tab')[2]?.addEventListener('click', () => {
+    if (invLineItems.length === 0) addInvLineItem();
+  });
+};
+
+
 </script>
 </body>
 </html>
