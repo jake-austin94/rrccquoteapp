@@ -1545,142 +1545,150 @@ function renderInvoicePaper() {
   // Get logo from app header (always present)
   const logoSrc = document.querySelector('.app-header img')?.src || '';
 
-  // Calculate totals
+  // Build 2-column table rows (Description | Total only)
   let subtotal = 0;
   let tableRows = '';
   iv.items.forEach(item => {
     const total = calcInvTotal(item);
-    const m2Cell = item.type === 'm2' ? (item.m2 || '–') : '–';
-    const priceCell = item.type === 'm2'
-      ? (item.pricePerM2 ? `£${item.pricePerM2}/m²` : '–')
-      : (item.flatPrice ? `£${parseFloat(item.flatPrice).toLocaleString()}` : '–');
     const totalCell = total !== null ? `£${total.toLocaleString()}` : '–';
     if (total !== null) subtotal += total;
 
     tableRows += `
       <tr>
         <td>
-          <div class="inv-td-desc">${escHtml(item.desc)}</div>
-          ${item.subdesc ? `<div class="inv-td-subdesc">${escHtml(item.subdesc)}</div>` : ''}
+          <div class="qp-td-main">${escHtml(item.desc)}</div>
+          ${item.subdesc ? `<div class="qp-td-sub">${escHtml(item.subdesc)}</div>` : ''}
         </td>
-        <td style="text-align:center">${m2Cell}</td>
-        <td style="text-align:center">${priceCell}</td>
-        <td style="text-align:center;font-weight:700">${totalCell}</td>
+        <td style="text-align:right;font-weight:700;white-space:nowrap">${totalCell}</td>
       </tr>`;
   });
 
-  const totalStr = subtotal > 0 ? `£${subtotal.toLocaleString()}` : '–';
-  const addressLines = [iv.addr1, iv.addr2, iv.postcode].filter(Boolean).join('<br>');
-  const quoteRefRow = iv.quoteRef
-    ? `<span class="inv-meta-lbl">Quote Ref.</span><span class="inv-meta-val">${escHtml(iv.quoteRef)}</span>`
-    : '';
+  const totalStr  = subtotal > 0 ? `£${subtotal.toLocaleString()}` : '–';
+  const addrLines = [iv.addr1, iv.addr2, iv.postcode].filter(Boolean).join('<br>');
+  const emailLine = iv.customerEmail ? `<br>${escHtml(iv.customerEmail)}` : '';
+  const quoteRow  = iv.quoteRef
+    ? `<br>Quote Ref: <strong>${escHtml(iv.quoteRef)}</strong>` : '';
   const sortRow = iv.sortCode
-    ? `<span class="inv-pay-lbl">Sort Code</span><span>${escHtml(iv.sortCode)}</span>`
-    : '';
-  const accRow = iv.accNumber
-    ? `<span class="inv-pay-lbl">Account No.</span><span>${escHtml(iv.accNumber)}</span>`
-    : '';
+    ? `<tr><td class="inv-pd-lbl">Sort Code</td><td>${escHtml(iv.sortCode)}</td></tr>` : '';
+  const accRow  = iv.accNumber
+    ? `<tr><td class="inv-pd-lbl">Account No.</td><td>${escHtml(iv.accNumber)}</td></tr>` : '';
 
   document.getElementById('inv-paper').innerHTML = `
     <style>
+      /* ── Invoice paper — mirrors quote paper layout ── */
       #inv-paper * { box-sizing: border-box; margin: 0; padding: 0; }
-      #inv-paper { font-family: 'DM Sans', sans-serif; color: #1a1a2e; }
-      .inv-header { padding: 18px 28px 12px; display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #2196C4; }
-      .inv-header-left { display:flex; align-items:center; gap:14px; }
-      .inv-logo { height:56px; width:auto; border-radius:6px; }
-      .inv-company-name { font-size:13px; font-weight:700; color:#1a1a2e; }
-      .inv-company-sub { font-size:10px; color:#666; line-height:1.7; margin-top:2px; }
-      .inv-header-right { text-align:right; }
-      .inv-doc-type { font-size:28px; font-weight:700; color:#2196C4; letter-spacing:-0.01em; }
-      .inv-meta-grid { display:grid; grid-template-columns:auto auto; gap:2px 10px; font-size:10px; margin-top:6px; justify-content:end; }
-      .inv-meta-lbl { color:#888; font-weight:600; text-align:right; }
-      .inv-meta-val { color:#1a1a2e; font-weight:600; }
-      .inv-client-row { padding:16px 28px; display:flex; justify-content:space-between; align-items:flex-start; background:#f8f9fc; }
-      .inv-bill-label { font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:#888; margin-bottom:4px; }
-      .inv-client-name { font-weight:700; font-size:14px; }
-      .inv-client-addr { font-size:11px; color:#666; line-height:1.6; margin-top:2px; }
-      .inv-table-wrap { padding:0 28px 20px; }
-      .inv-table-wrap table { width:100%; border-collapse:collapse; border-radius:8px; overflow:hidden; margin-top:16px; }
-      .inv-table-wrap thead tr { background:#2196C4; }
-      .inv-table-wrap thead th { color:white; font-size:11px; font-weight:600; padding:10px 12px; text-align:left; }
-      .inv-table-wrap thead th:last-child, .inv-table-wrap thead th:nth-child(2), .inv-table-wrap thead th:nth-child(3) { text-align:center; }
-      .inv-table-wrap tbody tr { border-bottom:1px solid #f0f0f0; }
-      .inv-table-wrap tbody tr:last-child { border-bottom:none; }
-      .inv-table-wrap tbody td { padding:11px 12px; font-size:11px; vertical-align:top; }
-      .inv-table-wrap tbody tr:nth-child(even) { background:#fafafa; }
-      .inv-td-desc { font-weight:700; font-size:12px; }
-      .inv-td-subdesc { font-weight:400; font-size:10px; color:#666; margin-top:3px; }
-      .inv-total-row td { background:#e8f4fa; }
-      .inv-total-row td:last-child { color:#2196C4; font-size:15px; font-weight:700; }
-      .inv-pay-box { margin:0 28px 20px; background:#e8f4fa; border:1px solid #c8dff0; border-radius:10px; padding:16px 20px; }
-      .inv-pay-title { font-size:13px; font-weight:700; color:#2196C4; margin-bottom:10px; }
-      .inv-pay-grid { display:grid; grid-template-columns:130px 1fr; gap:5px 10px; font-size:11px; }
-      .inv-pay-lbl { font-weight:600; color:#888; }
-      .inv-pay-note { margin-top:10px; font-size:10px; color:#888; border-top:1px solid #c8dff0; padding-top:8px; }
-      .inv-footer { padding:12px 28px 20px; font-size:9px; font-weight:600; color:#888; text-align:center; border-top:1px solid #eee; margin-top:auto; }
+      #inv-paper { font-family: 'DM Sans', sans-serif; background: #fff; color: #1a1a2e; }
+
+      /* Header */
+      .qp-header  { display:flex; justify-content:space-between; align-items:center;
+                    padding: 20px 28px 14px; border-bottom: 3px solid #2196C4; }
+      .qp-logo-area img { height:60px; width:auto; border-radius:6px; }
+      .qp-contact { text-align:right; font-size:11px; color:#555; line-height:1.75; }
+      .qp-contact strong { color:#1a1a2e; }
+
+      /* Title band */
+      .qp-main       { padding: 0 28px 24px; }
+      .qp-title-band { background:#2196C4; color:white; padding:10px 14px;
+                       margin: 0 -28px; display:flex; justify-content:flex-end; }
+      .qp-title      { font-size:22px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; }
+
+      /* Client row */
+      .qp-client-row  { display:flex; justify-content:space-between; align-items:flex-start;
+                         padding:14px 0 12px; border-bottom:1px solid #eee; }
+      .qp-client-name { font-size:15px; font-weight:700; }
+      .qp-client-addr { font-size:11px; color:#666; line-height:1.65; margin-top:3px; }
+      .qp-meta        { text-align:right; font-size:11px; color:#444; line-height:1.85; }
+
+      /* Items table */
+      .qp-table           { margin-top:14px; }
+      .qp-table table     { width:100%; border-collapse:collapse; border-radius:8px; overflow:hidden; }
+      .qp-table thead tr  { background:#2196C4; }
+      .qp-table thead th  { color:white; font-size:11px; font-weight:600; padding:10px 12px; text-align:left; }
+      .qp-table thead th:last-child { text-align:right; }
+      .qp-table tbody td  { padding:10px 12px; font-size:11px; border-bottom:1px solid #f0f0f0; vertical-align:top; }
+      .qp-table tbody tr:last-child td { border-bottom:none; }
+      .qp-table tbody tr:nth-child(even) { background:#fafbfc; }
+      .qp-td-main { font-weight:700; font-size:12px; }
+      .qp-td-sub  { font-size:10px; color:#777; margin-top:3px; }
+      .qp-total-row td { background:#e8f4fa; font-weight:700; }
+      .qp-total-row td:last-child { color:#2196C4; font-size:15px; text-align:right; }
+
+      /* Payment details */
+      .inv-pay-box   { margin-top:18px; background:#f0f7fb; border:1px solid #c5dcea;
+                       border-radius:10px; padding:14px 16px; }
+      .inv-pay-title { font-size:12px; font-weight:700; color:#2196C4; margin-bottom:10px; }
+      .inv-pay-tbl   { width:100%; border-collapse:collapse; font-size:11px; }
+      .inv-pd-lbl    { font-weight:600; color:#777; width:130px; padding:3px 10px 3px 0;
+                       vertical-align:top; }
+      .inv-pay-tbl td { padding:3px 4px; vertical-align:top; }
+
+      /* Footer */
+      .qp-footer { padding:10px 28px; background:#f5f5f5; border-top:1px solid #e0e0e0;
+                   font-size:9px; color:#888; text-align:center; font-weight:600; }
     </style>
 
-    <div class="inv-header">
-      <div class="inv-header-left">
-        ${logoSrc ? `<img src="${logoSrc}" alt="Logo" class="inv-logo">` : ''}
-        <div>
-          <div class="inv-company-name">The Roof &amp; Render Cleaning Company</div>
-          <div class="inv-company-sub">07848 003360<br>roofandrendercleaning.com<br>roofandrendercleaning@gmail.com</div>
+    <div style="position:relative;">
+      <div class="qp-header">
+        <div class="qp-logo-area">
+          ${logoSrc ? `<img src="${logoSrc}" alt="Logo">` : ''}
+        </div>
+        <div class="qp-contact">
+          <strong>roofandrendercleaningco@gmail.com</strong><br>
+          roofandrendercleaning.com<br>
+          <strong>07848 003360</strong>
         </div>
       </div>
-      <div class="inv-header-right">
-        <div class="inv-doc-type">INVOICE</div>
-        <div class="inv-meta-grid">
-          <span class="inv-meta-lbl">Invoice No.</span><span class="inv-meta-val">${escHtml(iv.ref)}</span>
-          <span class="inv-meta-lbl">Date</span><span class="inv-meta-val">${escHtml(iv.date)}</span>
-          <span class="inv-meta-lbl">Due Date</span><span class="inv-meta-val">${escHtml(iv.dueDate)}</span>
-          ${quoteRefRow}
+
+      <div class="qp-main">
+        <div class="qp-title-band">
+          <div class="qp-title">Invoice</div>
+        </div>
+
+        <div class="qp-client-row">
+          <div>
+            <div class="qp-client-name">${escHtml(iv.customerName)}</div>
+            <div class="qp-client-addr">${addrLines}${emailLine}</div>
+          </div>
+          <div class="qp-meta">
+            Invoice No: <strong>${escHtml(iv.ref)}</strong><br>
+            Date: <strong>${escHtml(iv.date)}</strong><br>
+            Due Date: <strong>${escHtml(iv.dueDate)}</strong>${quoteRow}
+          </div>
+        </div>
+
+        <div class="qp-table">
+          <table>
+            <thead>
+              <tr>
+                <th>Description</th>
+                <th style="text-align:right">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${tableRows}
+              <tr class="qp-total-row">
+                <td style="text-align:right;padding-right:14px;font-size:12px">Total Due</td>
+                <td>${totalStr}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="inv-pay-box">
+          <div class="inv-pay-title">Payment Details</div>
+          <table class="inv-pay-tbl">
+            <tr><td class="inv-pd-lbl">Bank</td><td>${escHtml(iv.bankName)}</td></tr>
+            <tr><td class="inv-pd-lbl">Account Name</td><td>${escHtml(iv.accName)}</td></tr>
+            ${sortRow}
+            ${accRow}
+            <tr><td class="inv-pd-lbl">Reference</td><td><strong>${escHtml(iv.payRef || iv.ref)}</strong></td></tr>
+          </table>
         </div>
       </div>
-    </div>
 
-    <div class="inv-client-row">
-      <div>
-        <div class="inv-bill-label">Bill To</div>
-        <div class="inv-client-name">${escHtml(iv.customerName)}</div>
-        <div class="inv-client-addr">${addressLines}${iv.customerEmail ? '<br>' + escHtml(iv.customerEmail) : ''}</div>
+      <div class="qp-footer">
+        <strong>Prices are not subject to VAT &bull; Please use your invoice number as the payment reference &bull; Payment due: ${escHtml(iv.dueDate)}</strong>
       </div>
-    </div>
-
-    <div class="inv-table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Description</th>
-            <th>Area (m²)</th>
-            <th>Unit Price</th>
-            <th>Total</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${tableRows}
-          <tr class="inv-total-row">
-            <td colspan="3" style="text-align:right;font-weight:700;padding-right:14px;font-size:12px">Total Due</td>
-            <td style="text-align:center">${totalStr}</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <div class="inv-pay-box">
-      <div class="inv-pay-title">💳 Payment Details</div>
-      <div class="inv-pay-grid">
-        <span class="inv-pay-lbl">Bank</span><span>${escHtml(iv.bankName)}</span>
-        <span class="inv-pay-lbl">Account Name</span><span>${escHtml(iv.accName)}</span>
-        ${sortRow}
-        ${accRow}
-        <span class="inv-pay-lbl">Reference</span><span><strong>${escHtml(iv.payRef || iv.ref)}</strong></span>
-      </div>
-      <div class="inv-pay-note">Please use your invoice number as the payment reference. Payment due: <strong>${escHtml(iv.dueDate)}</strong></div>
-    </div>
-
-    <div class="inv-footer">
-      The Roof &amp; Render Cleaning Company &nbsp;·&nbsp; roofandrendercleaning.com &nbsp;·&nbsp; 07848 003360
     </div>
   `;
 }
