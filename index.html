@@ -984,7 +984,8 @@ function renderQuotePaper() {
             </tbody>
           </table>
         </div>
-      </div>
+
+      </div><!-- /qp-main -->
 
       <div class="qp-footer">
         <strong>Prices are not subject to VAT as The Roof &amp; Render Cleaning Company are not currently VAT registered</strong>
@@ -1586,10 +1587,10 @@ function renderInvoicePaper() {
       .qp-contact { text-align:right; font-size:11px; color:#555; line-height:1.75; }
       .qp-contact strong { color:#1a1a2e; }
 
-      /* Title band */
+      /* Title band — sits outside qp-main so it's truly full-width */
       .qp-main       { padding: 0 28px 24px; }
-      .qp-title-band { background:#2196C4; color:white; padding:10px 14px;
-                       margin: 0 -28px; display:flex; justify-content:flex-end; }
+      .qp-title-band { background:#2196C4; color:white; padding:10px 20px;
+                       display:flex; justify-content:flex-end; }
       .qp-title      { font-size:22px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; }
 
       /* Client row */
@@ -1614,8 +1615,8 @@ function renderInvoicePaper() {
       .qp-total-row td:last-child { color:#2196C4; font-size:15px; text-align:right; }
 
       /* Payment details */
-      .inv-pay-box   { margin-top:18px; background:#f0f7fb; border:1px solid #c5dcea;
-                       border-radius:10px; padding:14px 16px; }
+      .inv-pay-box   { margin-top:18px; background:#e8f4fb; border:2px solid #2196C4;
+                       border-radius:8px; padding:14px 16px; }
       .inv-pay-title { font-size:12px; font-weight:700; color:#2196C4; margin-bottom:10px; }
       .inv-pay-tbl   { width:100%; border-collapse:collapse; font-size:11px; }
       .inv-pd-lbl    { font-weight:600; color:#777; width:130px; padding:3px 10px 3px 0;
@@ -1639,11 +1640,11 @@ function renderInvoicePaper() {
         </div>
       </div>
 
-      <div class="qp-main">
-        <div class="qp-title-band">
-          <div class="qp-title">Invoice</div>
-        </div>
+      <div class="qp-title-band">
+        <div class="qp-title">Invoice</div>
+      </div>
 
+      <div class="qp-main">
         <div class="qp-client-row">
           <div>
             <div class="qp-client-name">${escHtml(iv.customerName)}</div>
