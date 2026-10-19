@@ -1542,154 +1542,162 @@ function scaleInvPaper() {
 
 function renderInvoicePaper() {
   const iv = invoiceData;
-
-  // Get logo from app header (always present)
   const logoSrc = document.querySelector('.app-header img')?.src || '';
 
-  // Build 2-column table rows (Description | Total only)
+  // Build 2-column table rows
   let subtotal = 0;
   let tableRows = '';
   iv.items.forEach(item => {
-    const total = calcInvTotal(item);
-    const totalCell = total !== null ? `£${total.toLocaleString()}` : '–';
-    if (total !== null) subtotal += total;
-
+    const t = calcInvTotal(item);
+    const tStr = t !== null ? `£${parseFloat(t).toLocaleString('en-GB', {minimumFractionDigits:2, maximumFractionDigits:2})}` : '–';
+    if (t !== null) subtotal += parseFloat(t);
     tableRows += `
       <tr>
         <td>
-          <div class="qp-td-main">${escHtml(item.desc)}</div>
-          ${item.subdesc ? `<div class="qp-td-sub">${escHtml(item.subdesc)}</div>` : ''}
+          <div style="font-weight:600;font-size:12px">${escHtml(item.desc)}</div>
+          ${item.subdesc ? `<div style="font-size:10px;color:#777;margin-top:2px">${escHtml(item.subdesc)}</div>` : ''}
         </td>
-        <td style="text-align:right;font-weight:700;white-space:nowrap">${totalCell}</td>
+        <td style="text-align:right;font-weight:700;white-space:nowrap;padding-right:14px">${tStr}</td>
       </tr>`;
   });
 
-  const totalStr  = subtotal > 0 ? `£${subtotal.toLocaleString()}` : '–';
+  const totalStr  = subtotal > 0
+    ? `£${subtotal.toLocaleString('en-GB', {minimumFractionDigits:2, maximumFractionDigits:2})}`
+    : '–';
   const addrLines = [iv.addr1, iv.addr2, iv.postcode].filter(Boolean).join('<br>');
-  const emailLine = iv.customerEmail ? `<br>${escHtml(iv.customerEmail)}` : '';
   const quoteRow  = iv.quoteRef
-    ? `<br>Quote Ref: <strong>${escHtml(iv.quoteRef)}</strong>` : '';
-  const sortRow = iv.sortCode
-    ? `<tr><td class="inv-pd-lbl">Sort Code</td><td>${escHtml(iv.sortCode)}</td></tr>` : '';
-  const accRow  = iv.accNumber
-    ? `<tr><td class="inv-pd-lbl">Account No.</td><td>${escHtml(iv.accNumber)}</td></tr>` : '';
+    ? `<div>Quote Ref: <strong>${escHtml(iv.quoteRef)}</strong></div>` : '';
 
   document.getElementById('inv-paper').innerHTML = `
     <style>
-      /* ── Invoice paper — mirrors quote paper layout ── */
-      #inv-paper * { box-sizing: border-box; margin: 0; padding: 0; }
-      #inv-paper { font-family: 'DM Sans', sans-serif; background: #fff; color: #1a1a2e; }
+      /* ── Invoice paper v3 — matches quote paper visual style ── */
+      #inv-paper *   { box-sizing:border-box; margin:0; padding:0; }
+      #inv-paper     { font-family:'DM Sans',sans-serif; background:#fff; color:#1a1a2e;
+                       width:794px; min-height:1123px; display:flex; flex-direction:column; }
 
       /* Header */
-      .qp-header  { display:flex; justify-content:space-between; align-items:center;
-                    padding: 20px 28px 14px; border-bottom: 3px solid #2196C4; }
-      .qp-logo-area img { height:60px; width:auto; border-radius:6px; }
-      .qp-contact { text-align:right; font-size:11px; color:#555; line-height:1.75; }
-      .qp-contact strong { color:#1a1a2e; }
+      .ip-header      { display:flex; justify-content:space-between; align-items:center;
+                        padding:22px 40px 16px; border-bottom:2px solid #2196C4; }
+      .ip-logo        img { height:70px; width:auto; }
+      .ip-contact     { text-align:right; font-size:12px; color:#555; line-height:1.8; }
+      .ip-contact strong { color:#1a1a2e; font-size:13px; }
 
-      /* Title band — sits outside qp-main so it's truly full-width */
-      .qp-main       { padding: 0 28px 24px; }
-      .qp-title-band { background:#2196C4; color:white; padding:10px 20px;
-                       display:flex; justify-content:flex-end; }
-      .qp-title      { font-size:22px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; }
+      /* Title — large light text, white background (matches page-level .qp-title) */
+      .ip-title-wrap  { padding:8px 40px 4px; }
+      .ip-title       { font-size:54px; font-weight:300; color:#1a1a2e;
+                        letter-spacing:-0.01em; line-height:1.1; }
+
+      /* Main body */
+      .ip-main        { padding:0 40px 28px; flex:1; display:flex; flex-direction:column; }
 
       /* Client row */
-      .qp-client-row  { display:flex; justify-content:space-between; align-items:flex-start;
-                         padding:14px 0 12px; border-bottom:1px solid #eee; }
-      .qp-client-name { font-size:15px; font-weight:700; }
-      .qp-client-addr { font-size:11px; color:#666; line-height:1.65; margin-top:3px; }
-      .qp-meta        { text-align:right; font-size:11px; color:#444; line-height:1.85; }
+      .ip-client-row  { display:flex; justify-content:space-between; align-items:flex-start;
+                        padding:14px 0 16px; border-bottom:1px solid #eee; }
+      .ip-client-name { font-size:15px; font-weight:700; margin-bottom:3px; }
+      .ip-client-addr { font-size:11px; color:#666; line-height:1.65; }
+      .ip-meta        { text-align:right; font-size:11px; color:#555; line-height:1.9; }
+      .ip-meta strong { color:#1a1a2e; }
 
-      /* Items table */
-      .qp-table           { margin-top:14px; }
-      .qp-table table     { width:100%; border-collapse:collapse; border-radius:8px; overflow:hidden; }
-      .qp-table thead tr  { background:#2196C4; }
-      .qp-table thead th  { color:white; font-size:11px; font-weight:600; padding:10px 12px; text-align:left; }
-      .qp-table thead th:last-child { text-align:right; }
-      .qp-table tbody td  { padding:10px 12px; font-size:11px; border-bottom:1px solid #f0f0f0; vertical-align:top; }
-      .qp-table tbody tr:last-child td { border-bottom:none; }
-      .qp-table tbody tr:nth-child(even) { background:#fafbfc; }
-      .qp-td-main { font-weight:700; font-size:12px; }
-      .qp-td-sub  { font-size:10px; color:#777; margin-top:3px; }
-      .qp-total-row td { background:#e8f4fa; font-weight:700; }
-      .qp-total-row td:last-child { color:#2196C4; font-size:15px; text-align:right; }
+      /* Table */
+      .ip-table       { margin-top:16px; }
+      .ip-table table { width:100%; border-collapse:collapse; border:1px solid #dde3ed;
+                        border-radius:8px; overflow:hidden; }
+      .ip-table thead tr { background:#2196C4; }
+      .ip-table thead th { color:white; font-size:11px; font-weight:600;
+                           padding:10px 14px; text-align:left; }
+      .ip-table thead th:last-child { text-align:right; padding-right:14px; }
+      .ip-table tbody td { padding:11px 14px; font-size:11px; border-bottom:1px solid #f0f0f0;
+                           vertical-align:top; }
+      .ip-table tbody tr:last-child td { border-bottom:none; }
+      .ip-table tbody tr:nth-child(even) { background:#fafbfc; }
 
-      /* Payment details */
-      .inv-pay-box   { margin-top:18px; background:#e8f4fb; border:2px solid #2196C4;
-                       border-radius:8px; padding:14px 16px; }
-      .inv-pay-title { font-size:12px; font-weight:700; color:#2196C4; margin-bottom:10px; }
-      .inv-pay-tbl   { width:100%; border-collapse:collapse; font-size:11px; }
-      .inv-pd-lbl    { font-weight:600; color:#777; width:130px; padding:3px 10px 3px 0;
-                       vertical-align:top; }
-      .inv-pay-tbl td { padding:3px 4px; vertical-align:top; }
+      /* Bottom row: payment (left) + total block (right) */
+      .ip-bottom      { display:flex; justify-content:space-between; align-items:flex-start;
+                        margin-top:22px; gap:16px; }
+      .ip-payment     { font-size:11px; color:#444; line-height:2.0; }
+      .ip-payment-lbl { font-size:11px; font-weight:700; color:#1a1a2e; margin-bottom:5px; }
+
+      /* Total block — partial width, blue label + white amount */
+      .ip-total-block { min-width:220px; border:1px solid #dde3ed; border-radius:6px;
+                        overflow:hidden; }
+      .ip-total-block table { width:100%; border-collapse:collapse; }
+      .ip-total-block .ip-total-lbl { background:#2196C4; color:white;
+                                       padding:10px 18px; font-size:13px; font-weight:700;
+                                       text-align:left; }
+      .ip-total-block .ip-total-amt { background:#fff; padding:10px 18px;
+                                       font-size:15px; font-weight:700; color:#1a1a2e;
+                                       text-align:right; }
 
       /* Footer */
-      .qp-footer { padding:10px 28px; background:#f5f5f5; border-top:1px solid #e0e0e0;
-                   font-size:9px; color:#888; text-align:center; font-weight:600; }
+      .ip-footer      { padding:10px 40px 16px; border-top:1px solid #eee;
+                        font-size:9px; font-weight:700; color:#888; text-align:center; }
     </style>
 
-    <div style="position:relative;">
-      <div class="qp-header">
-        <div class="qp-logo-area">
-          ${logoSrc ? `<img src="${logoSrc}" alt="Logo">` : ''}
+    <div class="ip-header">
+      <div class="ip-logo">
+        ${logoSrc ? `<img src="${logoSrc}" alt="Logo">` : ''}
+      </div>
+      <div class="ip-contact">
+        <strong>roofandrendercleaningco@gmail.com</strong><br>
+        roofandrendercleaning.com<br>
+        <strong>07848 003360</strong>
+      </div>
+    </div>
+
+    <div class="ip-title-wrap">
+      <div class="ip-title">Invoice</div>
+    </div>
+
+    <div class="ip-main">
+      <div class="ip-client-row">
+        <div>
+          <div class="ip-client-name">${escHtml(iv.customerName)}</div>
+          <div class="ip-client-addr">${addrLines}</div>
         </div>
-        <div class="qp-contact">
-          <strong>roofandrendercleaningco@gmail.com</strong><br>
-          roofandrendercleaning.com<br>
-          <strong>07848 003360</strong>
+        <div class="ip-meta">
+          <div>Invoice No: <strong>${escHtml(iv.ref)}</strong></div>
+          <div>Date: <strong>${escHtml(iv.date)}</strong></div>
+          <div>Due Date: <strong>${escHtml(iv.dueDate)}</strong></div>
+          ${quoteRow}
         </div>
       </div>
 
-      <div class="qp-title-band">
-        <div class="qp-title">Invoice</div>
+      <div class="ip-table">
+        <table>
+          <thead>
+            <tr>
+              <th>Description</th>
+              <th style="text-align:right;padding-right:14px">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${tableRows}
+          </tbody>
+        </table>
       </div>
 
-      <div class="qp-main">
-        <div class="qp-client-row">
-          <div>
-            <div class="qp-client-name">${escHtml(iv.customerName)}</div>
-            <div class="qp-client-addr">${addrLines}${emailLine}</div>
-          </div>
-          <div class="qp-meta">
-            Invoice No: <strong>${escHtml(iv.ref)}</strong><br>
-            Date: <strong>${escHtml(iv.date)}</strong><br>
-            Due Date: <strong>${escHtml(iv.dueDate)}</strong>${quoteRow}
-          </div>
+      <div class="ip-bottom">
+        <div class="ip-payment">
+          <div class="ip-payment-lbl">Payment Details</div>
+          ${iv.accName  ? `<div>${escHtml(iv.accName)}</div>` : ''}
+          ${iv.accNumber ? `<div>Account No: ${escHtml(iv.accNumber)}</div>` : ''}
+          ${iv.sortCode  ? `<div>Sort Code: ${escHtml(iv.sortCode)}</div>` : ''}
+          <div>Reference: <strong>${escHtml(iv.payRef || iv.ref)}</strong></div>
         </div>
 
-        <div class="qp-table">
+        <div class="ip-total-block">
           <table>
-            <thead>
-              <tr>
-                <th>Description</th>
-                <th style="text-align:right">Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${tableRows}
-              <tr class="qp-total-row">
-                <td style="text-align:right;padding-right:14px;font-size:12px">Total Due</td>
-                <td>${totalStr}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <div class="inv-pay-box">
-          <div class="inv-pay-title">Payment Details</div>
-          <table class="inv-pay-tbl">
-            <tr><td class="inv-pd-lbl">Bank</td><td>${escHtml(iv.bankName)}</td></tr>
-            <tr><td class="inv-pd-lbl">Account Name</td><td>${escHtml(iv.accName)}</td></tr>
-            ${sortRow}
-            ${accRow}
-            <tr><td class="inv-pd-lbl">Reference</td><td><strong>${escHtml(iv.payRef || iv.ref)}</strong></td></tr>
+            <tr>
+              <td class="ip-total-lbl">Total</td>
+              <td class="ip-total-amt">${totalStr}</td>
+            </tr>
           </table>
         </div>
       </div>
+    </div>
 
-      <div class="qp-footer">
-        <strong>Prices are not subject to VAT &bull; Please use your invoice number as the payment reference &bull; Payment due: ${escHtml(iv.dueDate)}</strong>
-      </div>
+    <div class="ip-footer">
+      <strong>Prices are not subject to VAT as The Roof &amp; Render Cleaning Company are not currently VAT registered</strong>
     </div>
   `;
 }
