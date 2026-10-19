@@ -255,9 +255,9 @@
     box-shadow: 0 4px 24px rgba(0,0,0,0.15); background: white;
   }
   #inv-paper {
-    width: 794px; min-height: 1123px; background: white;
+    width: 794px; height: 1123px; background: white;
     transform-origin: top left; box-sizing: border-box;
-    display: flex; flex-direction: column;
+    display: flex; flex-direction: column; overflow: hidden;
   }
   .inv-line-item-row {
     background: white; border: 1px solid var(--border);
@@ -1573,7 +1573,8 @@ function renderInvoicePaper() {
       /* ── Invoice paper v3 — matches quote paper visual style ── */
       #inv-paper *   { box-sizing:border-box; margin:0; padding:0; }
       #inv-paper     { font-family:'DM Sans',sans-serif; background:#fff; color:#1a1a2e;
-                       width:794px; min-height:1123px; display:flex; flex-direction:column; }
+                       width:794px; height:1123px; display:flex; flex-direction:column;
+                       overflow:hidden; }
 
       /* Header */
       .ip-header      { display:flex; justify-content:space-between; align-items:center;
@@ -1716,7 +1717,7 @@ async function downloadInvoicePDF() {
     if (wrapper) { wrapper.style.overflow = 'visible'; wrapper.style.height = 'auto'; }
     const canvas = await html2canvas(paper, {
       scale: 2, useCORS: true, backgroundColor: '#ffffff',
-      width: 794, height: paper.scrollHeight
+      width: 794, height: 1123
     });
     paper.style.transform = prevTransform;
     if (wrapper) { wrapper.style.overflow = 'hidden'; scaleInvPaper(); }
@@ -1770,7 +1771,7 @@ async function sendInvEmail() {
     if (wrapper) { wrapper.style.overflow = 'visible'; wrapper.style.height = 'auto'; }
     const canvas = await html2canvas(paper, {
       scale: 2, useCORS: true, backgroundColor: '#ffffff',
-      width: 794, height: paper.scrollHeight
+      width: 794, height: 1123
     });
     paper.style.transform = prevTransform;
     if (wrapper) { wrapper.style.overflow = 'hidden'; scaleInvPaper(); }
